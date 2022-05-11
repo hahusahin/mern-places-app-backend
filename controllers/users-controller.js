@@ -45,7 +45,7 @@ const signUpUser = async (req, res, next) => {
     name,
     email,
     password,
-    imageUrl: "https://res.cloudinary.com/academind-gmbh/image/upload/f_auto,q_auto:eco/dpr_2.0,w_120,c_lfill,g_center,h_120/v1/academind.com/site/max",
+    imageUrl: req.file.path,  // the attached file's path (/uploads/images/<imageId>)
     places: []
   });
   
@@ -72,11 +72,11 @@ const loginUser = async (req, res, next) => {
 
   if(!identifiedUser || identifiedUser.password !== password){
     return next(
-      new HttpError("Couldn't identify user, credentials may be wrong", 401)
+      new HttpError("Invalid credentials, please check your email and password", 401)
     );
   }
 
-  res.json({message: "Logged In"})
+  res.json({user: identifiedUser})
 };
 
 exports.getAllUsers = getAllUsers;

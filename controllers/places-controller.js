@@ -1,3 +1,4 @@
+const fs = require("fs")
 const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 
@@ -34,7 +35,7 @@ const getPlaceById = async (req, res, next) => {
 const getPlacesByUserId = async (req, res, next) => {
   const userId = req.params.uid;
 
-  let places = [];
+  let places;
   try {
     places = await Place.find({ creator: userId });
   } catch (error) {
@@ -43,7 +44,7 @@ const getPlacesByUserId = async (req, res, next) => {
     );
   }
 
-  if (places.length === 0) {
+  if (!places) {
     return next(
       new HttpError("Couldn't find a place for the provided user id", 404)
     );
@@ -74,8 +75,7 @@ const createPlace = async (req, res, next) => {
   const newPlace = new Place({
     title,
     description,
-    imageUrl:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/NYC_Empire_State_Building.jpg/640px-NYC_Empire_State_Building.jpg",
+    imageUrl: req.file.path,
     address,
     location: coordinates,
     creator,
@@ -100,11 +100,11 @@ const createPlace = async (req, res, next) => {
     const sess = await mongoose.startSession();
     sess.startTransaction();
     // add the newly created place to DB (places collection)
-    await newPlace.save({ session: sess });
+    await newPlace.save({ session: sess, validateModifiedOnly: true });
     // add the new place (it's id) to the user's places field (not an array push) 
     user.places.push(newPlace);
     // save the updated user in the DB (users collection)
-    await user.save({ session: sess });
+    await user.save({ session: sess, validateModifiedOnly: true });
     await sess.commitTransaction();
   } catch (error) {
     return next(
@@ -168,19 +168,23 @@ const deletePlace = async (req, res, next) => {
   }
 
   // delete the place from Places Collection && delete the place id from user.places field
+  const imagePath = foundPlace.imageUrl
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
     // remove the place with placeId from DB
-    await foundPlace.remove({ session: sess }); 
+    await foundPlace.remove({ session: sess, validateModifiedOnly: true }); 
     // find the User who added this place and delete it from his places
     foundPlace.creator.places.pull(foundPlace)
     // save the updated User document
-    await foundPlace.creator.save({ session: sess }); 
+    await foundPlace.creator.save({ session: sess, validateModifiedOnly: true }); 
     await sess.commitTransaction();
   } catch (error) {
     return next(new HttpError("Couldn't delete the place", 500));
   }
+
+  // delete the image from server
+  fs.unlink(imagePath, (err) => console.log(err))
 
   res.status(200).json({ message: "Deleted Succesfully" });
 };
