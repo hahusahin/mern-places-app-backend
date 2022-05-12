@@ -39,7 +39,7 @@ app.use((error, req, res, next) => {
   // if there is a file attached to the request but an error occured,
   // then deletes this file manually
   if (req.file) {
-    fs.unlink(req.file.path, (err) => console.log(err));
+    fs.unlink(req.file.path, (err) => {});
   }
   if (res.headerSent) {
     return next(error);
@@ -51,7 +51,7 @@ app.use((error, req, res, next) => {
 
 mongoose
   .connect(
-    "mongodb+srv://admin-hhs:Hs337515@cluster0.kojcq.mongodb.net/mernPlacesDB?retryWrites=true&w=majority"
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.kojcq.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
   )
   .then(() => {
     app.listen(5000);
